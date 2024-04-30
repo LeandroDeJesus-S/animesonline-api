@@ -9,7 +9,6 @@ from database import db
 
 season_bp = Blueprint('season', __name__)
 spec.register(season_bp)
-DB_PATH = 'D:/projects/web_scraping/anime_scraping/anime.db'
 
 @season_bp.route('/anime/<int:anime_id>/season', methods=['GET'])
 @spec.validate(resp=Response(HTTP_200=Seasons, 
@@ -22,9 +21,9 @@ def list_seasons(anime_id: int):
         query_result = db.session.execute(
             text(
                 'SELECT season, count(*) as episodes \
-                    FROM episode WHERE anime_id = ? GROUP BY season'
+                    FROM episode WHERE anime_id = :aid GROUP BY season'
             ), 
-            (anime_id,)
+            {'aid': anime_id},
         ).fetchall()
 
         if not query_result:
@@ -71,10 +70,10 @@ def get_season(anime_id: int, season_num: int):
         query_result = db.session.execute(
             text(
                 'SELECT season, count(*) as episodes \
-                    FROM episode WHERE anime_id = ? and season = ? \
+                    FROM episode WHERE anime_id = :aid and season = :s \
                         GROUP BY season'
             ), 
-            (anime_id, season_num)
+            {'aid': anime_id, 's': season_num}
         ).fetchall()
 
         if not query_result:

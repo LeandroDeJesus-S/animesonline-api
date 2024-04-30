@@ -23,10 +23,10 @@ def list_eps(anime_id: int, season_num: str):
         query_result = db.session.execute(
             text(
                 f'SELECT {", ".join(EP_COLS)} \
-                    FROM episode WHERE anime_id = ? AND season = ? \
+                    FROM episode WHERE anime_id = :anime_id AND season = :s \
                         ORDER BY date, number'
             ),
-            (anime_id, season_num)
+            {'anime_id': anime_id, 's': season_num}
         ).fetchall()
         query_result = list(map(lambda x: (x[0], x[1], x[2], x[3], int(x[4]), x[5]), query_result))
 
@@ -75,8 +75,8 @@ def add_ep(anime_id: int, season_num: int):
         return JsonResponseMessage(status_code=400, message_type='error', message=msg).dict(), 400
     
     try:
-        sql = f'INSERT INTO episode ({", ".join(EP_COLS[1:])}) VALUES (?, ?, ?, ?, ?)'
-        val = (anime_id, number, date, season, url)
+        sql = f'INSERT INTO episode ({", ".join(EP_COLS[1:])}) VALUES (:aid, :n, :d, :s, :u)'
+        val = {'aid': anime_id, 'n': number, 'd': date, 's': season, 'u': url}
 
         db.session.execute(
             text(sql), val
@@ -114,8 +114,8 @@ def delete_ep(anime_id: int, season_num: int, ep_num: int):
     
     try:
         db.session.execute(
-            text('DELETE FROM episode WHERE anime_id = ? AND season = ? AND number = ?'),
-            (anime_id, season_num, ep_num)
+            text('DELETE FROM episode WHERE anime_id = :aid AND season = :s AND number = :n'),
+            {'aid': anime_id, 's': season_num, 'n': ep_num}
         )
         db.session.commit()
         return JsonResponseMessage(
@@ -162,15 +162,16 @@ def modify_ep(anime_id: int, season_num: int, ep_num: int):
     data = request.context.body.dict()  # type: ignore
     
     columns = tuple(data.keys())
-    values = tuple(data.values())
+    values = data.copy()
+    values.update({'aid': anime_id, 's': season_num, 'n': ep_num})
 
-    mask = ', '.join(f'{c} = ?' for c in columns)
-    sql_query = f"UPDATE episode SET {mask} WHERE anime_id = ? AND season = ? AND number = ?"
+    mask = ', '.join(f'{c} = :{c}' for c in columns)
+    sql_query = f"UPDATE episode SET {mask} WHERE anime_id = :aid AND season = :s AND number = :n"
 
     try:
         db.session.execute(
             text(sql_query),
-            (*values, anime_id, season_num, ep_num)
+            values
         )
         db.session.commit()
         return JsonResponseMessage(
@@ -213,8 +214,8 @@ def modify_ep(anime_id: int, season_num: int, ep_num: int):
 def get_ep(anime_id: int, season_num: str, ep_num: int):
     try:
         query_result = db.session.execute(
-            text('SELECT * FROM episode WHERE anime_id = ? AND season = ? and number = ?'),
-            (anime_id, season_num, ep_num)
+            text('SELECT * FROM episode WHERE anime_id = :aid AND season = :s and number = :n'),
+            {'aid': anime_id, 's': season_num, 'n': ep_num}
         ).fetchone()
         
         if not query_result:

@@ -13,7 +13,6 @@ from sqlalchemy.exc import DatabaseError, DataError, IntegrityError
 
 anime_bp = Blueprint('anime', __name__)
 spec.register(anime_bp)
-DB_PATH = 'D:/projects/web_scraping/anime_scraping/anime.db'
 ANIME_COLS = ('id', 'name', 'year', 'sinopse', 'categories', 'rate', 'url')
 
 @anime_bp.route('/anime', methods=['GET'])
@@ -70,9 +69,19 @@ def add_anime():
         url = context.get('url')
 
         db.session.execute(
-            text("INSERT INTO anime (name, year, sinopse, categories, rate, url) VALUES (?, ?, ?, ?, ?, ?)"),
-            (name, year, sinopse, categories, rate, url)
+            text(
+                "INSERT INTO anime (name, year, sinopse, categories, rate, url) \
+                    VALUES (:name, :year, :sinopse, :categories, :rate, :url)"),
+            {
+                'name': name, 
+                'year':year, 
+                'sinopse': sinopse, 
+                'categories':categories, 
+                'rate':rate, 
+                'url':url
+            }
         )
+
         db.session.commit()
         return JsonResponseMessage(
             status_code=201, 
