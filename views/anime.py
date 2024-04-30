@@ -111,9 +111,9 @@ def get_anime(anime_id: int):
     try:
         query_result = db.session.execute(
             text(
-                f"SELECT {', '.join(ANIME_COLS)} FROM anime WHERE id = ? LIMIT 1"
+                f"SELECT {', '.join(ANIME_COLS)} FROM anime WHERE id = :id LIMIT 1"
             ), 
-            (anime_id,)
+            {'id': anime_id}
         ).fetchone()
 
         if not query_result:
@@ -160,15 +160,17 @@ def modify_anime(anime_id: int):
         ).dict(), 404
     
     columns = tuple(data.keys())
-    values = tuple(data.values())
+    values = data.copy()
+    values.update({'id': anime_id})
 
-    mask = ', '.join(f'{c} = ?' for c in columns)
-    sql_query = f"UPDATE anime SET {mask} WHERE id = ?"
+
+    mask = ', '.join(f'{c} = :{c}' for c in columns)
+    sql_query = f"UPDATE anime SET {mask} WHERE id = :id"
 
     try:
         db.session.execute(
             text(sql_query),
-            (*values, anime_id,)
+            values
         )
         db.session.commit()
         return JsonResponseMessage(
@@ -214,8 +216,8 @@ def delete_anime(anime_id: int):
     
     try:
         db.session.execute(
-            text("DELETE FROM anime WHERE id = ?"),
-            (anime_id,)
+            text("DELETE FROM anime WHERE id = :id"),
+            {'id': anime_id}
         )
 
         db.session.commit()
