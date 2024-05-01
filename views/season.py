@@ -73,7 +73,7 @@ def get_season(anime_id: int, season_num: int):
                     FROM episode WHERE anime_id = :aid and season = :s \
                         GROUP BY season'
             ), 
-            {'aid': anime_id, 's': season_num}
+            {'aid': anime_id, 's': str(season_num)}
         ).fetchall()
 
         if not query_result:

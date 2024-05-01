@@ -7,6 +7,7 @@ from models import JsonResponseMessage, Episode, SeasonEpisodes
 from flask import Blueprint
 from api_spec import spec
 from utils.authutils import validate_auth
+from pydantic import ValidationError
 from database import db
 
 ep_bp = Blueprint('ep', __name__)
@@ -26,7 +27,7 @@ def list_eps(anime_id: int, season_num: str):
                     FROM episode WHERE anime_id = :anime_id AND season = :s \
                         ORDER BY date, number'
             ),
-            {'anime_id': anime_id, 's': season_num}
+            {'anime_id': anime_id, 's': str(season_num)}
         ).fetchall()
         query_result = list(map(lambda x: (x[0], x[1], x[2], x[3], int(x[4]), x[5]), query_result))
 
@@ -53,16 +54,17 @@ def list_eps(anime_id: int, season_num: str):
 @ep_bp.route('/anime/<int:anime_id>/season/<int:season_num>/episode', methods=['POST'])
 @spec.validate(body=Episode, resp=Response(HTTP_201=JsonResponseMessage, 
                                            HTTP_400=JsonResponseMessage, 
+                                           HTTP_403=JsonResponseMessage, 
                                            HTTP_422=JsonResponseMessage, 
                                            HTTP_500=JsonResponseMessage, 
                                            HTTP_404=JsonResponseMessage))
 def add_ep(anime_id: int, season_num: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
-        return JsonResponseMessage(status_code=403, message_type='error', message=msg)
+        return JsonResponseMessage(status_code=403, message_type='error', message=msg).dict(), 403
     
     data = request.context.body.dict()  # type: ignore
-    
+    print(data)
     anime_id = data.get('anime_id')
     number = data.get('number')
     season = data.get('season')
@@ -76,7 +78,7 @@ def add_ep(anime_id: int, season_num: int):
     
     try:
         sql = f'INSERT INTO episode ({", ".join(EP_COLS[1:])}) VALUES (:aid, :n, :d, :s, :u)'
-        val = {'aid': anime_id, 'n': number, 'd': date, 's': season, 'u': url}
+        val = {'aid': anime_id, 'n': str(number), 'd': date, 's': str(season), 'u': url}
 
         db.session.execute(
             text(sql), val
@@ -105,17 +107,18 @@ def add_ep(anime_id: int, season_num: int):
 @ep_bp.route('/anime/<int:anime_id>/season/<int:season_num>/episode/<int:ep_num>', methods=['DELETE'])
 @spec.validate(resp=Response(HTTP_204=JsonResponseMessage, 
                              HTTP_404=JsonResponseMessage, 
+                             HTTP_403=JsonResponseMessage, 
                              HTTP_422=JsonResponseMessage, 
                              HTTP_500=JsonResponseMessage))
 def delete_ep(anime_id: int, season_num: int, ep_num: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
-        return JsonResponseMessage(status_code=403, message_type='error', message=msg)
+        return JsonResponseMessage(status_code=403, message_type='error', message=msg).dict(), 403
     
     try:
         db.session.execute(
             text('DELETE FROM episode WHERE anime_id = :aid AND season = :s AND number = :n'),
-            {'aid': anime_id, 's': season_num, 'n': ep_num}
+            {'aid': anime_id, 's': str(season_num), 'n': str(ep_num)}
         )
         db.session.commit()
         return JsonResponseMessage(
@@ -152,19 +155,20 @@ def delete_ep(anime_id: int, season_num: int, ep_num: int):
 @ep_bp.route('/anime/<int:anime_id>/season/<int:season_num>/episode/<int:ep_num>', methods=['PUT'])
 @spec.validate(body=Episode, resp=Response(HTTP_200=JsonResponseMessage, 
                                            HTTP_404=JsonResponseMessage, 
+                                           HTTP_403=JsonResponseMessage, 
                                            HTTP_422=JsonResponseMessage, 
                                            HTTP_500=JsonResponseMessage))
 def modify_ep(anime_id: int, season_num: int, ep_num: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
-        return JsonResponseMessage(status_code=403, message_type='error', message=msg)
+        return JsonResponseMessage(status_code=403, message_type='error', message=msg).dict(), 403
     
     data = request.context.body.dict()  # type: ignore
     
     columns = tuple(data.keys())
     values = data.copy()
-    values.update({'aid': anime_id, 's': season_num, 'n': ep_num})
-
+    values.update({'aid': anime_id, 's': str(season_num), 'n': str(ep_num)})
+ 
     mask = ', '.join(f'{c} = :{c}' for c in columns)
     sql_query = f"UPDATE episode SET {mask} WHERE anime_id = :aid AND season = :s AND number = :n"
 
@@ -215,7 +219,7 @@ def get_ep(anime_id: int, season_num: str, ep_num: int):
     try:
         query_result = db.session.execute(
             text('SELECT * FROM episode WHERE anime_id = :aid AND season = :s and number = :n'),
-            {'aid': anime_id, 's': season_num, 'n': ep_num}
+            {'aid': anime_id, 's': str(season_num), 'n': str(ep_num)}
         ).fetchone()
         
         if not query_result:

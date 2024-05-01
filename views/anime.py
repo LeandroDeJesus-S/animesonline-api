@@ -48,14 +48,16 @@ def list_animes():
 @spec.validate(body=Anime, resp=Response(HTTP_201=JsonResponseMessage, 
                                          HTTP_404=JsonResponseMessage, 
                                          HTTP_400=JsonResponseMessage, 
+                                         HTTP_403=JsonResponseMessage, 
                                          HTTP_422=JsonResponseMessage, 
                                          HTTP_500=JsonResponseMessage))
 def add_anime():
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
-        return JsonResponseMessage(status_code=403, message_type='error', message=msg)
+        return JsonResponseMessage(status_code=403, message_type='error', message=msg).dict(), 403
     
     context = request.context.body.dict()  # type: ignore
+    print(context)
     if not context:
         msg = 'Dados inválidos'
         return JsonResponseMessage(status_code=404, message_type='error', message=msg).dict(), 404
@@ -158,7 +160,7 @@ def get_anime(anime_id: int):
 def modify_anime(anime_id: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
-        return JsonResponseMessage(status_code=403, message_type='error', message=msg)
+        return JsonResponseMessage(status_code=403, message_type='error', message=msg).dict(), 403
 
     data = request.context.body.dict()  # type: ignore
     if not data:
@@ -221,7 +223,7 @@ def modify_anime(anime_id: int):
 def delete_anime(anime_id: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
-        return JsonResponseMessage(status_code=403, message_type='error', message=msg)
+        return JsonResponseMessage(status_code=403, message_type='error', message=msg).dict(), 403
     
     try:
         db.session.execute(
