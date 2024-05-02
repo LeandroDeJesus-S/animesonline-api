@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import BaseModel, ValidationError, validator, Field
 from typing import Optional, Literal
 import datetime
 
@@ -67,3 +67,12 @@ class JsonResponseMessage(BaseModel):
     status_code: int
     message_type: Literal['info', 'error', 'success']
     message: str
+
+
+class Headers(BaseModel):
+    accept: str = 'application/json'
+    Content_Type: str = Field(default='application/json', alias='Content-Type')
+    X_Access_Token: str = Field(alias='X-Access-Token')
+
+    class Config:
+        allow_population_by_field_name = True

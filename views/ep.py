@@ -3,7 +3,7 @@ from flask.json import jsonify
 from sqlalchemy.exc import DatabaseError, DataError
 from sqlalchemy import text
 from flask_pydantic_spec import Response
-from models import JsonResponseMessage, Episode, SeasonEpisodes
+from models import JsonResponseMessage, Episode, SeasonEpisodes, Headers
 from flask import Blueprint
 from api_spec import spec
 from utils.authutils import validate_auth
@@ -52,19 +52,19 @@ def list_eps(anime_id: int, season_num: str):
 
 
 @ep_bp.route('/anime/<int:anime_id>/season/<int:season_num>/episode', methods=['POST'])
-@spec.validate(body=Episode, resp=Response(HTTP_201=JsonResponseMessage, 
-                                           HTTP_400=JsonResponseMessage, 
-                                           HTTP_403=JsonResponseMessage, 
-                                           HTTP_422=JsonResponseMessage, 
-                                           HTTP_500=JsonResponseMessage, 
-                                           HTTP_404=JsonResponseMessage))
+@spec.validate(body=Episode, headers=Headers, resp=Response(HTTP_201=JsonResponseMessage, 
+                                                            HTTP_400=JsonResponseMessage, 
+                                                            HTTP_403=JsonResponseMessage, 
+                                                            HTTP_422=JsonResponseMessage, 
+                                                            HTTP_500=JsonResponseMessage, 
+                                                            HTTP_404=JsonResponseMessage))
 def add_ep(anime_id: int, season_num: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
         return JsonResponseMessage(status_code=403, message_type='error', message=msg).dict(), 403
     
     data = request.context.body.dict()  # type: ignore
-    print(data)
+    id = data.get('id')
     anime_id = data.get('anime_id')
     number = data.get('number')
     season = data.get('season')
@@ -77,8 +77,8 @@ def add_ep(anime_id: int, season_num: int):
         return JsonResponseMessage(status_code=400, message_type='error', message=msg).dict(), 400
     
     try:
-        sql = f'INSERT INTO episode ({", ".join(EP_COLS[1:])}) VALUES (:aid, :n, :d, :s, :u)'
-        val = {'aid': anime_id, 'n': str(number), 'd': date, 's': str(season), 'u': url}
+        sql = f'INSERT INTO episode ({", ".join(EP_COLS)}) VALUES (:id, :aid, :n, :d, :s, :u)'
+        val = {'id': id, 'aid': anime_id, 'n': str(number), 'd': date, 's': str(season), 'u': url}
 
         db.session.execute(
             text(sql), val
@@ -105,11 +105,10 @@ def add_ep(anime_id: int, season_num: int):
 
 
 @ep_bp.route('/anime/<int:anime_id>/season/<int:season_num>/episode/<int:ep_num>', methods=['DELETE'])
-@spec.validate(resp=Response(HTTP_204=JsonResponseMessage, 
-                             HTTP_404=JsonResponseMessage, 
-                             HTTP_403=JsonResponseMessage, 
-                             HTTP_422=JsonResponseMessage, 
-                             HTTP_500=JsonResponseMessage))
+@spec.validate(headers=Headers, resp=Response(HTTP_404=JsonResponseMessage, 
+                                              HTTP_403=JsonResponseMessage, 
+                                              HTTP_422=JsonResponseMessage, 
+                                              HTTP_500=JsonResponseMessage))
 def delete_ep(anime_id: int, season_num: int, ep_num: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'
@@ -121,11 +120,7 @@ def delete_ep(anime_id: int, season_num: int, ep_num: int):
             {'aid': anime_id, 's': str(season_num), 'n': str(ep_num)}
         )
         db.session.commit()
-        return JsonResponseMessage(
-            status_code=204, 
-            message_type='success', 
-            message='Episódio deletado com sucesso'
-        ).dict(), 204
+        return '', 204
     
     except DataError as e:
         db.session.rollback()
@@ -153,11 +148,11 @@ def delete_ep(anime_id: int, season_num: int, ep_num: int):
 
 
 @ep_bp.route('/anime/<int:anime_id>/season/<int:season_num>/episode/<int:ep_num>', methods=['PUT'])
-@spec.validate(body=Episode, resp=Response(HTTP_200=JsonResponseMessage, 
-                                           HTTP_404=JsonResponseMessage, 
-                                           HTTP_403=JsonResponseMessage, 
-                                           HTTP_422=JsonResponseMessage, 
-                                           HTTP_500=JsonResponseMessage))
+@spec.validate(body=Episode, headers=Headers, resp=Response(HTTP_200=JsonResponseMessage, 
+                                                            HTTP_404=JsonResponseMessage, 
+                                                            HTTP_403=JsonResponseMessage, 
+                                                            HTTP_422=JsonResponseMessage, 
+                                                            HTTP_500=JsonResponseMessage))
 def modify_ep(anime_id: int, season_num: int, ep_num: int):
     if not validate_auth(request.headers):
         msg = 'Acesso não autorizado.'

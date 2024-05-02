@@ -1,4 +1,5 @@
-from flask import Flask, request
+from flask import Flask
+# from flask_cors import CORS
 from flask.json.provider import DefaultJSONProvider
 from views.anime import anime_bp
 from views.ep import ep_bp
