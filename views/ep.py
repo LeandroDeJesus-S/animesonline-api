@@ -14,6 +14,7 @@ ep_bp = Blueprint('ep', __name__)
 spec.register(ep_bp)
 EP_COLS = ['id', 'anime_id', 'number', 'date', 'season', 'url']
 
+
 @ep_bp.route('/anime/<int:anime_id>/season/<int:season_num>/episode', methods=['GET'])
 @spec.validate(resp=Response(HTTP_200=SeasonEpisodes, 
                              HTTP_404=JsonResponseMessage, 
@@ -27,9 +28,9 @@ def list_eps(anime_id: int, season_num: str):
                     FROM episode WHERE anime_id = :anime_id AND season = :s \
                         ORDER BY date, number'
             ),
-            {'anime_id': anime_id, 's': str(season_num)}
+            {'anime_id': anime_id, 's': season_num}
         ).fetchall()
-        query_result = list(map(lambda x: (x[0], x[1], x[2], x[3], int(x[4]), x[5]), query_result))
+        query_result = list(map(lambda x: (x[0], x[1], x[2], x[3], x[4], x[5]), query_result))
 
         if not query_result:
             msg = 'Não há episódios para exibir'
@@ -78,7 +79,7 @@ def add_ep(anime_id: int, season_num: int):
     
     try:
         sql = f'INSERT INTO episode ({", ".join(EP_COLS)}) VALUES (:id, :aid, :n, :d, :s, :u)'
-        val = {'id': id, 'aid': anime_id, 'n': str(number), 'd': date, 's': str(season), 'u': url}
+        val = {'id': id, 'aid': anime_id, 'n': str(number), 'd': date, 's': season, 'u': url}
 
         db.session.execute(
             text(sql), val
@@ -117,7 +118,7 @@ def delete_ep(anime_id: int, season_num: int, ep_num: int):
     try:
         db.session.execute(
             text('DELETE FROM episode WHERE anime_id = :aid AND season = :s AND number = :n'),
-            {'aid': anime_id, 's': str(season_num), 'n': str(ep_num)}
+            {'aid': anime_id, 's': season_num, 'n': str(ep_num)}
         )
         db.session.commit()
         return '', 204
@@ -162,7 +163,7 @@ def modify_ep(anime_id: int, season_num: int, ep_num: int):
     
     columns = tuple(data.keys())
     values = data.copy()
-    values.update({'aid': anime_id, 's': str(season_num), 'n': str(ep_num)})
+    values.update({'aid': anime_id, 's': season_num, 'n': str(ep_num)})
  
     mask = ', '.join(f'{c} = :{c}' for c in columns)
     sql_query = f"UPDATE episode SET {mask} WHERE anime_id = :aid AND season = :s AND number = :n"
@@ -214,7 +215,7 @@ def get_ep(anime_id: int, season_num: str, ep_num: int):
     try:
         query_result = db.session.execute(
             text('SELECT * FROM episode WHERE anime_id = :aid AND season = :s and number = :n'),
-            {'aid': anime_id, 's': str(season_num), 'n': str(ep_num)}
+            {'aid': anime_id, 's': season_num, 'n': str(ep_num)}
         ).fetchone()
         
         if not query_result:

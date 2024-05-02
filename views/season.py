@@ -10,6 +10,7 @@ from database import db
 season_bp = Blueprint('season', __name__)
 spec.register(season_bp)
 
+
 @season_bp.route('/anime/<int:anime_id>/season', methods=['GET'])
 @spec.validate(resp=Response(HTTP_200=Seasons, 
                              HTTP_404=JsonResponseMessage,
@@ -73,7 +74,7 @@ def get_season(anime_id: int, season_num: int):
                     FROM episode WHERE anime_id = :aid and season = :s \
                         GROUP BY season'
             ), 
-            {'aid': anime_id, 's': str(season_num)}
+            {'aid': anime_id, 's': season_num}
         ).fetchall()
 
         if not query_result:

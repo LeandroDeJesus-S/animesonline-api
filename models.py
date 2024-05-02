@@ -20,19 +20,19 @@ class Animes(BaseModel):
 class Episode(BaseModel):
     id: Optional[int]
     anime_id: Optional[int]
-    number: Optional[int]
+    number: Optional[str]
     date: Optional[str]
     season: Optional[int]
     url: Optional[str]
 
     @validator('date', pre=True, always=True)
     def parse_date(cls, value):
-        if isinstance(value, datetime.date|datetime.datetime):
+        if  not isinstance(value, str):
             try:
                 return datetime.datetime.strftime(value, "%Y-%m-%d")
             except ValueError as e:
                 raise ValidationError("Invalid date format, should be YYYY-MM-DD") from e
-        
+
         return value
 
     @validator('season', pre=True, always=True)
@@ -44,6 +44,7 @@ class Episode(BaseModel):
                 raise ValidationError(f"{value} cannot be an valid integer") from e
         
         return value
+
 
 class Episodes(BaseModel):
     episodes: list[Episode]
