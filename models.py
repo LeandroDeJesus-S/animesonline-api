@@ -7,7 +7,7 @@ class Anime(BaseModel):
     id: Optional[int]
     name: Optional[str]
     categories: Optional[str]
-    year: Optional[str]
+    year: Optional[int]
     sinopse: Optional[str]
     url: Optional[str]
     rate: Optional[float]
